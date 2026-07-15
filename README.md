@@ -6,7 +6,7 @@
 `プログラム/` に、GitHub Pages 前提で動作するデモ実装を追加しています。
 
 - `プログラム/index.html`: 画像情報表示 + バックグラウンド画像認識 + カーソル操作反映 UI
-- `プログラム/build-picture-manifest.mjs`: `写真` フォルダを読み取り、`プログラム/picture-manifest.json` を更新
+- `プログラム/build-picture-manifest.mjs`: `写真` フォルダ（`背景`・`キャラクター`などのサブフォルダを含む）を再帰的に読み取り、`プログラム/picture-manifest.json` を更新
 
 画像を増やした場合は以下を実行してマニフェストを更新してください。
 
