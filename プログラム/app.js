@@ -8,8 +8,11 @@ const metaSize = document.getElementById("meta-size");
 const metaBytes = document.getElementById("meta-bytes");
 
 const interactionSurface = document.getElementById("interaction-surface");
-const bottomInput = document.getElementById("bottom-input");
-const applyText = document.getElementById("apply-text");
+const textPopup = document.getElementById("text-popup");
+const popupInput = document.getElementById("popup-input");
+const popupApply = document.getElementById("popup-apply");
+const popupCancel = document.getElementById("popup-cancel");
+const popupTargetTextbox = document.getElementById("popup-target-textbox");
 
 const stateScreen = document.getElementById("state-screen");
 const stateCursor = document.getElementById("state-cursor");
@@ -22,6 +25,7 @@ const appState = {
   selectedBlock: null,
   activeTextboxId: null,
   images: [],
+  lastAction: "なし",
 };
 
 const imageWorker = new Worker("./image-worker.js");
@@ -39,6 +43,144 @@ const setStateView = () => {
   stateTextbox.textContent = appState.activeTextboxId || "なし";
 };
 
+const getSelectedImageConfig = () => {
+  const imageId = imageSelector.value;
+  return appState.images.find((item) => item.id === imageId) || null;
+};
+
+const selectBlockById = (blockId) => {
+  const targetBlock = document.querySelector(`.block[data-block-id="${blockId}"]`);
+  if (!targetBlock) {
+    return false;
+  }
+  document.querySelectorAll(".block").forEach((node) => node.classList.remove("selected"));
+  targetBlock.classList.add("selected");
+  appState.selectedBlock = blockId;
+  return true;
+};
+
+const focusTextboxById = (textboxId) => {
+  const textbox = document.querySelector(`.textbox[data-textbox-id="${textboxId}"]`);
+  if (!textbox) {
+    return false;
+  }
+  document.querySelectorAll(".textbox").forEach((node) => node.classList.remove("active"));
+  textbox.classList.add("active");
+  appState.activeTextboxId = textboxId;
+  appState.currentScreen = "テキスト編集画面";
+  if (textPopup) {
+    textPopup.classList.remove("hidden");
+  }
+  if (popupTargetTextbox) {
+    popupTargetTextbox.textContent = textboxId;
+  }
+  if (popupInput) {
+    popupInput.value = textbox.textContent;
+    popupInput.focus();
+    popupInput.select();
+  }
+  setStateView();
+  return true;
+};
+
+const executeImageAction = (action, selected, clickInfo) => {
+  if (!action || typeof action !== "object") {
+    return;
+  }
+
+  switch (action.type) {
+    case "navigate":
+      if (action.nextScreen) {
+        appState.currentScreen = action.nextScreen;
+        appState.lastAction = `画面遷移: ${action.nextScreen}`;
+      }
+      break;
+    case "select-block":
+      if (action.blockId && selectBlockById(action.blockId)) {
+        appState.currentScreen = "ブロック選択画面";
+        appState.lastAction = `ブロック選択: ${action.blockId}`;
+      }
+      break;
+    case "focus-textbox":
+      if (action.textboxId && focusTextboxById(action.textboxId)) {
+        appState.currentScreen = "テキスト編集画面";
+        appState.lastAction = `textbox編集: ${action.textboxId}`;
+      }
+      break;
+    case "notify":
+    default:
+      appState.lastAction = action.message || `${selected.name} をクリック`;
+      break;
+  }
+
+  analysisResult.textContent = JSON.stringify(
+    {
+      type: action.type || "notify",
+      image: selected.name,
+      imageId: selected.id,
+      click: clickInfo,
+      detail: action.message || null,
+      lastAction: appState.lastAction,
+    },
+    null,
+    2
+  );
+  setStateView();
+};
+
+const resolveImageAction = (selected, clickInfo) => {
+  const hotspots = Array.isArray(selected.hotspots) ? selected.hotspots : [];
+  const hotspotAction = hotspots.find((hotspot) => {
+    if (!hotspot || typeof hotspot !== "object" || !hotspot.onClick) {
+      return false;
+    }
+
+    const unit = hotspot.unit === "ratio" ? "ratio" : "pixel";
+    const x = Number(hotspot.x);
+    const y = Number(hotspot.y);
+    const w = Number(hotspot.w);
+    const h = Number(hotspot.h);
+    if (![x, y, w, h].every(Number.isFinite)) {
+      return false;
+    }
+
+    if (unit === "ratio") {
+      return (
+        clickInfo.ratioX >= x &&
+        clickInfo.ratioX <= x + w &&
+        clickInfo.ratioY >= y &&
+        clickInfo.ratioY <= y + h
+      );
+    }
+
+    return (
+      clickInfo.pixelX >= x &&
+      clickInfo.pixelX <= x + w &&
+      clickInfo.pixelY >= y &&
+      clickInfo.pixelY <= y + h
+    );
+  });
+
+  if (hotspotAction) {
+    return hotspotAction.onClick;
+  }
+
+  if (selected.onClick && typeof selected.onClick === "object") {
+    return selected.onClick;
+  }
+
+  return {
+    type: "notify",
+    message: `${selected.name} をクリックしました`,
+  };
+};
+
+const closeTextPopup = () => {
+  if (textPopup) {
+    textPopup.classList.add("hidden");
+  }
+};
+
 const applyTextboxValue = () => {
   if (!appState.activeTextboxId) {
     return;
@@ -46,10 +188,11 @@ const applyTextboxValue = () => {
   const textbox = document.querySelector(
     `.textbox[data-textbox-id="${appState.activeTextboxId}"]`
   );
-  if (!textbox) {
+  if (!textbox || !popupInput) {
     return;
   }
-  textbox.textContent = bottomInput.value;
+  textbox.textContent = popupInput.value;
+  closeTextPopup();
 };
 
 const bindInteractions = () => {
@@ -71,15 +214,7 @@ const bindInteractions = () => {
 
   document.querySelectorAll(".textbox").forEach((textbox) => {
     textbox.addEventListener("click", () => {
-      document
-        .querySelectorAll(".textbox")
-        .forEach((node) => node.classList.remove("active"));
-      textbox.classList.add("active");
-      appState.activeTextboxId = textbox.dataset.textboxId;
-      appState.currentScreen = "テキスト編集画面";
-      bottomInput.value = textbox.textContent;
-      bottomInput.focus();
-      setStateView();
+      focusTextboxById(textbox.dataset.textboxId);
     });
   });
 
@@ -95,17 +230,65 @@ const bindInteractions = () => {
     });
   });
 
-  applyText.addEventListener("click", applyTextboxValue);
-  bottomInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      applyTextboxValue();
+  if (popupApply) {
+    popupApply.addEventListener("click", applyTextboxValue);
+  }
+
+  if (popupCancel) {
+    popupCancel.addEventListener("click", closeTextPopup);
+  }
+
+  if (popupInput) {
+    popupInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        applyTextboxValue();
+      }
+      if (event.key === "Escape") {
+        closeTextPopup();
+      }
+    });
+  }
+
+  if (textPopup) {
+    textPopup.addEventListener("click", (event) => {
+      if (event.target === textPopup) {
+        closeTextPopup();
+      }
+    });
+  }
+
+  selectedImage.addEventListener("click", (event) => {
+    const selected = getSelectedImageConfig();
+    if (!selected) {
+      return;
     }
+
+    const rect = selectedImage.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return;
+    }
+
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+    const imageWidth = selectedImage.naturalWidth || rect.width;
+    const imageHeight = selectedImage.naturalHeight || rect.height;
+    const pixelX = Math.round((localX / rect.width) * imageWidth);
+    const pixelY = Math.round((localY / rect.height) * imageHeight);
+
+    const clickInfo = {
+      pixelX,
+      pixelY,
+      ratioX: Number((localX / rect.width).toFixed(4)),
+      ratioY: Number((localY / rect.height).toFixed(4)),
+    };
+
+    const action = resolveImageAction(selected, clickInfo);
+    executeImageAction(action, selected, clickInfo);
   });
 };
 
 const analyzeSelectedImage = async () => {
-  const imageId = imageSelector.value;
-  const selected = appState.images.find((item) => item.id === imageId);
+  const selected = getSelectedImageConfig();
   if (!selected) {
     return;
   }
@@ -135,8 +318,7 @@ const analyzeSelectedImage = async () => {
 };
 
 const updateImageView = async () => {
-  const imageId = imageSelector.value;
-  const selected = appState.images.find((item) => item.id === imageId);
+  const selected = getSelectedImageConfig();
   if (!selected) {
     return;
   }
