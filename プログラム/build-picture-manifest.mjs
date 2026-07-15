@@ -9,6 +9,7 @@ const repoRoot = path.resolve(__dirname, "..");
 const preferredDirs = ["写真"];
 
 const imageExt = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"]);
+const outPath = path.join(__dirname, "picture-manifest.json");
 
 const findSourceDir = async () => {
   for (const dirName of preferredDirs) {
@@ -70,6 +71,14 @@ const collectImageFiles = async (dir, relativeDir = "") => {
 const run = async () => {
   const source = await findSourceDir();
   const files = await collectImageFiles(source.fullPath);
+  let previousManifest = {};
+  try {
+    previousManifest = JSON.parse(await fs.readFile(outPath, "utf8"));
+  } catch {
+    previousManifest = {};
+  }
+  const previousImages = Array.isArray(previousManifest.images) ? previousManifest.images : [];
+  const previousByPath = new Map(previousImages.map((item) => [item.path, item]));
 
   const images = [];
   const usedIds = new Set();
@@ -84,12 +93,23 @@ const run = async () => {
     }
     usedIds.add(id);
 
-    images.push({
+    const imagePath = `../${source.name}/${file.relativePath}`;
+    const previous = previousByPath.get(imagePath);
+    const imageData = {
       id,
       name: file.name,
-      path: `../${source.name}/${file.relativePath}`,
+      path: imagePath,
       sizeBytes: stats.size,
-    });
+    };
+
+    if (previous?.onClick && typeof previous.onClick === "object") {
+      imageData.onClick = previous.onClick;
+    }
+    if (Array.isArray(previous?.hotspots)) {
+      imageData.hotspots = previous.hotspots;
+    }
+
+    images.push(imageData);
   }
 
   const manifest = {
@@ -98,7 +118,6 @@ const run = async () => {
     images,
   };
 
-  const outPath = path.join(__dirname, "picture-manifest.json");
   await fs.writeFile(outPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   process.stdout.write(`Updated: ${outPath}\n`);
 };

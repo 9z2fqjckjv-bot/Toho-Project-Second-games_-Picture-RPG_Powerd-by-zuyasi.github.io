@@ -39,7 +39,7 @@
       <section class="panel" id="interaction-surface">
         <h2>カーソル・操作面</h2>
         <p class="help">
-          テキストボックスをクリックすると画面下部の入力欄に反映され、Enter で更新できます。ブロックはクリックで選択できます。
+          テキストボックスをクリックするとポップアップ入力で編集できます。ブロックはクリックで選択できます。
         </p>
 
         <div class="screen">
@@ -69,15 +69,19 @@
       </section>
     </main>
 
-    <footer class="composer">
-      <label for="bottom-input">下部入力:</label>
-      <input
-        id="bottom-input"
-        type="text"
-        placeholder="テキストボックスをクリックするとここから入力できます"
-      />
-      <button id="apply-text" type="button">反映</button>
-    </footer>
+    <div id="text-popup" class="popup hidden" role="dialog" aria-modal="true">
+      <div class="popup-card">
+        <h3 class="popup-title">テキスト編集</h3>
+        <p class="popup-sub">
+          対象: <span id="popup-target-textbox">-</span>
+        </p>
+        <input id="popup-input" type="text" placeholder="入力して反映してください" />
+        <div class="popup-actions">
+          <button id="popup-cancel" type="button">キャンセル</button>
+          <button id="popup-apply" type="button">反映</button>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="./app.js"></script>
   </body>
