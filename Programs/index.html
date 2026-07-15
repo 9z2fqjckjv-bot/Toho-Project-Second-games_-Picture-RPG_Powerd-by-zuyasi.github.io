@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Programs | Picture Interaction Engine</title>
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <h1>Picture Interaction Engine</h1>
+        <p class="sub">
+          GitHub Pages 前提で動作する、画像情報読み取り + バックグラウンド画像認識 + カーソル操作デモ
+        </p>
+      </header>
+
+      <section class="panel">
+        <h2>画像情報 (Picture / Pictures)</h2>
+        <div class="row">
+          <label for="image-selector">画像:</label>
+          <select id="image-selector"></select>
+          <button id="analyze-button" type="button">バックグラウンド認識を実行</button>
+        </div>
+        <div class="row viewer-row">
+          <img id="selected-image" alt="選択中の画像" />
+          <div class="meta">
+            <div><strong>パス:</strong> <span id="meta-path">-</span></div>
+            <div><strong>幅x高さ:</strong> <span id="meta-size">-</span></div>
+            <div><strong>ファイルサイズ:</strong> <span id="meta-bytes">-</span></div>
+            <div>
+              <strong>認識結果:</strong>
+              <pre id="analysis-result">待機中</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="interaction-surface">
+        <h2>カーソル・操作面</h2>
+        <p class="help">
+          テキストボックスをクリックすると画面下部の入力欄に反映され、Enter で更新できます。ブロックはクリックで選択できます。
+        </p>
+
+        <div class="screen">
+          <div class="textbox" data-textbox-id="title">タイトル (クリックして編集)</div>
+          <div class="textbox" data-textbox-id="description">説明文 (クリックして編集)</div>
+        </div>
+
+        <div class="block-grid" id="block-grid">
+          <button class="block" data-block-id="A1" type="button">A1</button>
+          <button class="block" data-block-id="A2" type="button">A2</button>
+          <button class="block" data-block-id="A3" type="button">A3</button>
+          <button class="block" data-block-id="B1" type="button">B1</button>
+          <button class="block" data-block-id="B2" type="button">B2</button>
+          <button class="block" data-block-id="B3" type="button">B3</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>状態</h2>
+        <div class="state-grid">
+          <div><strong>現在画面:</strong> <span id="state-screen">メイン画面</span></div>
+          <div><strong>カーソル座標:</strong> <span id="state-cursor">x: -, y: -</span></div>
+          <div><strong>ホバー要素:</strong> <span id="state-hover">-</span></div>
+          <div><strong>選択ブロック:</strong> <span id="state-block">なし</span></div>
+          <div><strong>編集中 textbox:</strong> <span id="state-textbox">なし</span></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="composer">
+      <label for="bottom-input">下部入力:</label>
+      <input
+        id="bottom-input"
+        type="text"
+        placeholder="テキストボックスをクリックするとここから入力できます"
+      />
+      <button id="apply-text" type="button">反映</button>
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
