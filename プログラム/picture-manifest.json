@@ -1,5 +1,30 @@
 {
-  "generatedAt": "2026-07-15T11:40:07.952Z",
+  "generatedAt": "2026-07-15T11:49:36.517Z",
   "sourceDirectory": "写真",
-  "images": []
+  "images": [
+    {
+      "id": "singoku-jpg",
+      "name": "Singoku（女）微笑.jpg",
+      "path": "../写真/キャラクター/Singoku（女）微笑.jpg",
+      "sizeBytes": 374624
+    },
+    {
+      "id": "singoku-jpg-2",
+      "name": "Singoku（男）微笑.jpg",
+      "path": "../写真/キャラクター/Singoku（男）微笑.jpg",
+      "sizeBytes": 119905
+    },
+    {
+      "id": "image-jpg",
+      "name": "タイトル画面.jpg",
+      "path": "../写真/背景/タイトル画面.jpg",
+      "sizeBytes": 1102482
+    },
+    {
+      "id": "image-jpg-2",
+      "name": "主人公選択.jpg",
+      "path": "../写真/背景/主人公選択.jpg",
+      "sizeBytes": 1720470
+    }
+  ]
 }
