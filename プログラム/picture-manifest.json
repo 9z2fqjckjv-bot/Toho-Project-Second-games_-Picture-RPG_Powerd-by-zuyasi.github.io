@@ -1,12 +1,5 @@
 {
-  "generatedAt": "2026-07-15T10:18:36.928Z",
-  "sourceDirectory": "Picture",
-  "images": [
-    {
-      "id": "image-jpg",
-      "name": "タイトル画面.jpg",
-      "path": "../Picture/タイトル画面.jpg",
-      "sizeBytes": 1102482
-    }
-  ]
+  "generatedAt": "2026-07-15T11:40:07.952Z",
+  "sourceDirectory": "写真",
+  "images": []
 }
