@@ -19,22 +19,32 @@ const findSourceDir = async () => {
       if (stats.isDirectory()) {
         return { name: dirName, fullPath: candidate };
       }
-    } catch {
-      // skip missing directory
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
     }
   }
   throw new Error("写真 フォルダが見つかりません。");
 };
 
 const slug = (name) =>
-  name
-    .toLowerCase()
-    .replace(/\.[^.]+$/, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "image";
+  (() => {
+    const normalized = name
+      .toLowerCase()
+      .replace(/\.[^.]+$/, "")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "");
+    const ascii = normalized.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (ascii) {
+      return ascii;
+    }
+    return `image-${Buffer.from(normalized || name).toString("hex").slice(0, 24)}`;
+  })();
 
 const collectImageFiles = async (dir, relativeDir = "") => {
   const entries = await fs.readdir(dir, { withFileTypes: true });
+  entries.sort((a, b) => a.name.localeCompare(b.name, "ja"));
   const results = [];
 
   for (const entry of entries) {
@@ -71,11 +81,14 @@ const collectImageFiles = async (dir, relativeDir = "") => {
 const run = async () => {
   const source = await findSourceDir();
   const files = await collectImageFiles(source.fullPath);
+  files.sort((a, b) => a.relativePath.localeCompare(b.relativePath, "ja"));
   let previousManifest = {};
   try {
     previousManifest = JSON.parse(await fs.readFile(outPath, "utf8"));
-  } catch {
-    previousManifest = {};
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw new Error(`既存マニフェストの読み込みに失敗しました: ${error.message}`);
+    }
   }
   const previousImages = Array.isArray(previousManifest.images) ? previousManifest.images : [];
   const previousByPath = new Map(previousImages.map((item) => [item.path, item]));
@@ -84,7 +97,11 @@ const run = async () => {
   const usedIds = new Set();
   for (const file of files) {
     const stats = await fs.stat(file.fullPath);
-    const baseId = `${slug(file.relativePath)}-${file.ext.slice(1)}`;
+    const imagePath = `../${source.name}/${file.relativePath}`;
+    const previous = previousByPath.get(imagePath);
+    const previousId =
+      typeof previous?.id === "string" && previous.id.trim() ? previous.id.trim() : null;
+    const baseId = previousId || `${slug(file.relativePath)}-${file.ext.slice(1)}`;
     let id = baseId;
     let n = 2;
     while (usedIds.has(id)) {
@@ -92,9 +109,6 @@ const run = async () => {
       n += 1;
     }
     usedIds.add(id);
-
-    const imagePath = `../${source.name}/${file.relativePath}`;
-    const previous = previousByPath.get(imagePath);
     const imageData = {
       id,
       name: file.name,

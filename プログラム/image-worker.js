@@ -5,7 +5,19 @@ self.addEventListener("message", (event) => {
   }
 
   const { pixels, width, height } = payload;
-  const step = Math.max(1, Math.floor((width * height) / 12000));
+  const pixelCount = Math.min(
+    Number.isFinite(width * height) ? width * height : 0,
+    Math.floor(pixels.length / 4)
+  );
+  if (!Number.isFinite(pixelCount) || pixelCount <= 0) {
+    self.postMessage({
+      type: "analysis-error",
+      payload: { message: "有効な画像ピクセルがありません。" },
+    });
+    return;
+  }
+
+  const step = Math.max(1, Math.floor(pixelCount / 12000));
 
   let rTotal = 0;
   let gTotal = 0;
@@ -13,7 +25,7 @@ self.addEventListener("message", (event) => {
   let brightnessTotal = 0;
   let sampleCount = 0;
 
-  for (let i = 0; i < pixels.length; i += 4 * step) {
+  for (let i = 0; i < pixelCount * 4; i += 4 * step) {
     const r = pixels[i];
     const g = pixels[i + 1];
     const b = pixels[i + 2];
@@ -22,6 +34,13 @@ self.addEventListener("message", (event) => {
     bTotal += b;
     brightnessTotal += 0.299 * r + 0.587 * g + 0.114 * b;
     sampleCount += 1;
+  }
+  if (sampleCount <= 0) {
+    self.postMessage({
+      type: "analysis-error",
+      payload: { message: "画像解析サンプルを取得できませんでした。" },
+    });
+    return;
   }
 
   const rAvg = Math.round(rTotal / sampleCount);

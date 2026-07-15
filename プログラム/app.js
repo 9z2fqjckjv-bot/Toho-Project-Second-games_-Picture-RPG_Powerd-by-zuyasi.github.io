@@ -28,13 +28,22 @@ const appState = {
   lastAction: "なし",
 };
 
+const getErrorMessage = (error) =>
+  error instanceof Error ? error.message : "不明なエラー";
+
 const imageWorker = new Worker("./image-worker.js");
 imageWorker.addEventListener("message", (event) => {
   const { type, payload } = event.data || {};
-  if (type !== "analysis-result") {
+  if (type === "analysis-result") {
+    analysisResult.textContent = JSON.stringify(payload, null, 2);
     return;
   }
-  analysisResult.textContent = JSON.stringify(payload, null, 2);
+  if (type === "analysis-error") {
+    analysisResult.textContent = `画像解析エラー: ${payload?.message || "不明なエラー"}`;
+  }
+});
+imageWorker.addEventListener("error", (event) => {
+  analysisResult.textContent = `Workerエラー: ${event.message || "不明なエラー"}`;
 });
 
 const setStateView = () => {
@@ -294,27 +303,39 @@ const analyzeSelectedImage = async () => {
   }
 
   analysisResult.textContent = "解析中...";
+  try {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = selected.path;
+    await img.decode();
 
-  const img = new Image();
-  img.decoding = "async";
-  img.src = selected.path;
-  await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  const context = canvas.getContext("2d");
-  context.drawImage(img, 0, 0);
-  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    if (canvas.width <= 0 || canvas.height <= 0) {
+      throw new Error("画像サイズが不正です。");
+    }
 
-  imageWorker.postMessage({
-    type: "analyze",
-    payload: {
-      width: canvas.width,
-      height: canvas.height,
-      pixels: imageData.data,
-    },
-  });
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("2Dコンテキストを取得できません。");
+    }
+
+    context.drawImage(img, 0, 0);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+    imageWorker.postMessage({
+      type: "analyze",
+      payload: {
+        width: canvas.width,
+        height: canvas.height,
+        pixels: imageData.data,
+      },
+    });
+  } catch (error) {
+    analysisResult.textContent = `画像解析エラー: ${getErrorMessage(error)}`;
+  }
 };
 
 const updateImageView = async () => {
@@ -329,8 +350,13 @@ const updateImageView = async () => {
     ? `${selected.sizeBytes.toLocaleString()} bytes`
     : "-";
 
-  await selectedImage.decode();
-  metaSize.textContent = `${selectedImage.naturalWidth} x ${selectedImage.naturalHeight}`;
+  try {
+    await selectedImage.decode();
+    metaSize.textContent = `${selectedImage.naturalWidth} x ${selectedImage.naturalHeight}`;
+  } catch (error) {
+    metaSize.textContent = "-";
+    analysisResult.textContent = `画像読み込みエラー: ${getErrorMessage(error)}`;
+  }
 };
 
 const loadManifest = async () => {
