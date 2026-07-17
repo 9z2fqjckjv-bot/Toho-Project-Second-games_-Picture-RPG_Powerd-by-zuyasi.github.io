@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <script src=" https://9z2fqjckjv-bot.github.io/Block-WebSites-Editor.github.io/js/image-extractor.js"></script>
+    <script>
+      const html = document.documentElement.outerHTML;
+      const visibleImages = window.ImageExtractor.extractVisibleImagesFromHTML(html);
+      console.log(visibleImages);
+    </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>主人公選択画面</title>
