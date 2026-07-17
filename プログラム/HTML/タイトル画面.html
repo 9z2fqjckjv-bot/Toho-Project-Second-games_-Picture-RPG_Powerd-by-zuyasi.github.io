@@ -6,6 +6,11 @@
           const html = document.documentElement.outerHTML;
           const visibleImages = window.ImageExtractor.extractVisibleImagesFromHTML(html);
           console.log(visibleImages);
+          const existingData = { savedAt: new Date().toISOString() };
+            const payload = {
+              ...existingData,
+              visibleImages
+            };
         </script>
         <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
