@@ -1,0 +1,86 @@
+<!-- 各HTMLの戻りたい場所に設置するボタン例 -->
+<button id="gameBackButton" style="padding: 12px 24px; font-size: 16px; font-weight: bold; cursor: pointer; background: #333; color: #fff; border: 1px solid #fff; border-radius: 4px;">
+    ← 前の画面に戻る
+</button>
+
+<script>
+/**
+ * 東方Project-Second-games Picture-RPG 専用
+ * 超高速・完全ローカルURL履歴管理システム (GitHub Pages最適化版)
+ */
+(function() {
+    // 1. 設定：履歴に記録したくない「除外URL」を定義（タイトル画面やエラー画面など）
+    const EXCLUDE_PAGES = ['index.html', 'title.html', 'error.html'];
+    
+    // 2. ページ読み込み時の処理 (履歴の自動記録)
+    window.addEventListener('DOMContentLoaded', () => {
+        const currentUrl = window.location.href;
+        
+        // 独自の除外リストチェック
+        const isExcluded = EXCLUDE_PAGES.some(page => currentUrl.includes(page));
+        if (isExcluded) return;
+
+        try {
+            // sessionStorageから現在の履歴スタック（配列）を読み込む
+            let rpgHistory = JSON.parse(sessionStorage.getItem('rpg_route_history')) || [];
+            
+            // 最適化ロジック：
+            // A. リロード対策（直前のURLと同じなら二重追加しない）
+            // B. 「戻る」操作直後のページ重複バグを防ぐ
+            if (rpgHistory.length === 0 || rpgHistory[rpgHistory.length - 1] !== currentUrl) {
+                rpgHistory.push(currentUrl);
+                
+                // RPG特有の最適化：メモリ肥大化を防ぐため最大50件まで保存
+                if (rpgHistory.length > 50) {
+                    rpgHistory.shift(); 
+                }
+                
+                sessionStorage.setItem('rpg_route_history', JSON.stringify(rpgHistory));
+            }
+            console.log("[HistoryManager] 履歴を記録しました。現在のスタック数:", rpgHistory.length);
+        } catch (e) {
+            console.error("[HistoryManager] 履歴の保存に失敗しました(シークレットモード等の可能性):", e);
+        }
+    });
+
+    // 3. 「戻る」ボタンへのイベント紐付け
+    window.addEventListener('load', () => {
+        const backBtn = document.getElementById('gameBackButton');
+        if (!backBtn) return; // ページ内にボタンがない場合はスキップ
+
+        backBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            try {
+                let rpgHistory = JSON.parse(sessionStorage.getItem('rpg_route_history')) || [];
+                
+                // 今いるページを含めて2件以上ないと「戻る」先がない
+                if (rpgHistory.length <= 1) {
+                    console.warn("[HistoryManager] 戻るべき前の画面が履歴にありません。");
+                    // 予備の安全策：履歴がなければ自動的に一つ前の階層（またはTOP）へ行く
+                    window.location.href = "../index.html"; 
+                    return;
+                }
+                
+                // 1. 現在のページURL（配列の末尾）を取り除く
+                rpgHistory.pop();
+                
+                // 2. 1つ前のページのURLを取得（新しい末尾）
+                const previousPageUrl = rpgHistory[rpgHistory.length - 1];
+                
+                // 3. 更新した履歴スタックを保存
+                sessionStorage.setItem('rpg_route_history', JSON.stringify(rpgHistory));
+                
+                // 4. 前の画面へ遷移
+                console.log("[HistoryManager] 前の画面へ遷移します:", previousPageUrl);
+                window.location.href = previousPageUrl;
+                
+            } catch (e) {
+                console.error("[HistoryManager] 履歴の復元に失敗しました:", e);
+                // エラー時のセーフティネット
+                window.history.back(); 
+            }
+        });
+    });
+})();
+</script>
