@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>テンプレート画像エディタ</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
+      background: #f4f6f8;
+      color: #222;
+      line-height: 1.6;
+    }
+    header {
+      padding: 1rem 1.5rem;
+      background: #2c3e50;
+      color: #fff;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    header p {
+      margin: .25rem 0 0;
+      opacity: .9;
+    }
+    main {
+      display: grid;
+      grid-template-columns: minmax(260px, 340px) 1fr minmax(240px, 300px);
+      gap: 1rem;
+      padding: 1rem;
+    }
+    section {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 1rem;
+    }
+    h2 {
+      margin: 0 0 .75rem;
+      font-size: 1.1rem;
+    }
+    label {
+      display: block;
+      margin: .7rem 0 .25rem;
+      font-weight: 700;
+    }
+    input, select, button {
+      width: 100%;
+      font: inherit;
+    }
+    input, select {
+      padding: .55rem;
+      border: 1px solid #ccd3da;
+      border-radius: 8px;
+      background: #fff;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: .65rem .9rem;
+      background: #3498db;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #9aa9b5;
+      cursor: not-allowed;
+    }
+    .secondary { background: #607d8b; }
+    .danger { background: #d64545; }
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .5rem;
+      margin-top: .75rem;
+    }
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+      gap: .6rem;
+      max-height: 48vh;
+      overflow: auto;
+      padding-right: .25rem;
+    }
+    .template-item {
+      border: 2px solid transparent;
+      border-radius: 10px;
+      padding: .35rem;
+      background: #f7f9fb;
+      color: #25313b;
+      cursor: pointer;
+      text-align: center;
+    }
+    .template-item.is-selected {
+      border-color: #3498db;
+      background: #eaf5ff;
+    }
+    .template-item img {
+      width: 100%;
+      height: 70px;
+      object-fit: contain;
+      display: block;
+    }
+    .template-item span {
+      display: block;
+      margin-top: .25rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: .8rem;
+    }
+    .stage-wrap {
+      display: grid;
+      place-items: center;
+      min-height: calc(100vh - 140px);
+      background:
+        linear-gradient(45deg, #ddd 25%, transparent 25%),
+        linear-gradient(-45deg, #ddd 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ddd 75%),
+        linear-gradient(-45deg, transparent 75%, #ddd 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+      border-radius: 12px;
+      overflow: auto;
+      padding: 1rem;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto;
+      background: transparent;
+      border: 1px solid #b7c2cc;
+      box-shadow: 0 4px 18px rgba(0,0,0,.14);
+      touch-action: none;
+    }
+    .status {
+      margin: .75rem 0;
+      padding: .65rem;
+      border-radius: 8px;
+      background: #f1f5f8;
+      color: #4b5b68;
+      font-size: .9rem;
+    }
+    .layers {
+      max-height: 180px;
+      overflow: auto;
+      display: grid;
+      gap: .35rem;
+    }
+    .layer-button {
+      background: #eef3f7;
+      color: #25313b;
+      text-align: left;
+      font-weight: 600;
+    }
+    .layer-button.is-selected {
+      background: #3498db;
+      color: #fff;
+    }
+    @media (max-width: 980px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+      .stage-wrap {
+        min-height: 55vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>テンプレート画像エディタ</h1>
+    <p>template/eyes・template/balls・template/shapes の画像を読み込み、配置やサイズを編集してPNGで保存できます。</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>テンプレートを追加</h2>
+      <label for="categorySelect">カテゴリ</label>
+      <select id="categorySelect">
+        <option value="eyes">目（template/eyes）</option>
+        <option value="balls">ボール（template/balls）</option>
+        <option value="shapes">図形（template/shapes）</option>
+      </select>
+      <div class="button-row">
+        <button id="reloadTemplatesButton" class="secondary" type="button">再読み込み</button>
+        <button id="addTemplateButton" type="button" disabled>選択画像を追加</button>
+      </div>
+      <div id="templateStatus" class="status">テンプレートを読み込み中...</div>
+      <div id="templateGrid" class="template-grid" aria-live="polite"></div>
+
+      <label for="uploadTemplateInput">PCから画像を追加</label>
+      <input id="uploadTemplateInput" type="file" accept="image/*">
+
+      <label for="backgroundInput">下絵・背景画像</label>
+      <input id="backgroundInput" type="file" accept="image/*">
+      <button id="clearBackgroundButton" class="secondary" type="button" style="margin-top:.5rem;">背景を消す</button>
+    </section>
+
+    <section class="stage-wrap" aria-label="編集キャンバス">
+      <canvas id="editorCanvas" width="900" height="600"></canvas>
+    </section>
+
+    <section>
+      <h2>選択中の画像を編集</h2>
+      <div id="selectionStatus" class="status">画像を追加して選択してください。</div>
+
+      <label for="xInput">X位置</label>
+      <input id="xInput" type="number" step="1">
+      <label for="yInput">Y位置</label>
+      <input id="yInput" type="number" step="1">
+      <label for="scaleInput">大きさ（%）</label>
+      <input id="scaleInput" type="number" min="5" max="500" step="1">
+      <label for="rotationInput">回転（度）</label>
+      <input id="rotationInput" type="number" min="-360" max="360" step="1">
+      <label for="opacityInput">透明度（%）</label>
+      <input id="opacityInput" type="number" min="0" max="100" step="1">
+
+      <div class="button-row">
+        <button id="flipButton" class="secondary" type="button">左右反転</button>
+        <button id="deleteButton" class="danger" type="button">削除</button>
+      </div>
+      <div class="button-row">
+        <button id="moveBackButton" class="secondary" type="button">背面へ</button>
+        <button id="moveFrontButton" class="secondary" type="button">前面へ</button>
+      </div>
+
+      <h2 style="margin-top:1.25rem;">レイヤー</h2>
+      <div id="layersList" class="layers"></div>
+
+      <button id="downloadButton" type="button" style="margin-top:1rem;">PNGを書き出す</button>
+    </section>
+  </main>
+
+  <script>
+    const REPO_OWNER = "9z2fqjckjv-bot";
+    const REPO_NAME = "Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io";
+    const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"]);
+    const canvas = document.getElementById("editorCanvas");
+    const ctx = canvas.getContext("2d");
+    const categorySelect = document.getElementById("categorySelect");
+    const templateGrid = document.getElementById("templateGrid");
+    const templateStatus = document.getElementById("templateStatus");
+    const addTemplateButton = document.getElementById("addTemplateButton");
+    const selectionStatus = document.getElementById("selectionStatus");
+    const layersList = document.getElementById("layersList");
+    const controls = {
+      x: document.getElementById("xInput"),
+      y: document.getElementById("yInput"),
+      scale: document.getElementById("scaleInput"),
+      rotation: document.getElementById("rotationInput"),
+      opacity: document.getElementById("opacityInput")
+    };
+
+    let templates = [];
+    let selectedTemplate = null;
+    let layers = [];
+    let selectedLayerId = null;
+    let backgroundImage = null;
+    let dragging = null;
+
+    function fileExtension(name) {
+      const index = name.lastIndexOf(".");
+      return index >= 0 ? name.slice(index).toLowerCase() : "";
+    }
+
+    function imageFromUrl(src) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = src;
+      });
+    }
+
+    function imageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => imageFromUrl(reader.result).then(resolve, reject);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function selectedLayer() {
+      return layers.find((layer) => layer.id === selectedLayerId) || null;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (backgroundImage) {
+        const ratio = Math.min(canvas.width / backgroundImage.width, canvas.height / backgroundImage.height);
+        const width = backgroundImage.width * ratio;
+        const height = backgroundImage.height * ratio;
+        ctx.drawImage(backgroundImage, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
+      }
+      for (const layer of layers) {
+        ctx.save();
+        ctx.translate(layer.x, layer.y);
+        ctx.rotate(layer.rotation * Math.PI / 180);
+        ctx.scale(layer.flipX ? -layer.scale : layer.scale, layer.scale);
+        ctx.globalAlpha = layer.opacity;
+        ctx.drawImage(layer.image, -layer.image.width / 2, -layer.image.height / 2);
+        ctx.restore();
+        if (layer.id === selectedLayerId) drawSelection(layer);
+      }
+    }
+
+    function drawSelection(layer) {
+      const width = layer.image.width * layer.scale;
+      const height = layer.image.height * layer.scale;
+      ctx.save();
+      ctx.translate(layer.x, layer.y);
+      ctx.rotate(layer.rotation * Math.PI / 180);
+      ctx.strokeStyle = "#3498db";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(-width / 2, -height / 2, width, height);
+      ctx.restore();
+    }
+
+    function syncControls() {
+      const layer = selectedLayer();
+      const disabled = !layer;
+      Object.values(controls).forEach((input) => input.disabled = disabled);
+      document.getElementById("flipButton").disabled = disabled;
+      document.getElementById("deleteButton").disabled = disabled;
+      document.getElementById("moveBackButton").disabled = disabled;
+      document.getElementById("moveFrontButton").disabled = disabled;
+      if (!layer) {
+        selectionStatus.textContent = "画像を追加して選択してください。";
+        Object.values(controls).forEach((input) => input.value = "");
+        return;
+      }
+      selectionStatus.textContent = layer.name;
+      controls.x.value = Math.round(layer.x);
+      controls.y.value = Math.round(layer.y);
+      controls.scale.value = Math.round(layer.scale * 100);
+      controls.rotation.value = Math.round(layer.rotation);
+      controls.opacity.value = Math.round(layer.opacity * 100);
+    }
+
+    function renderLayers() {
+      layersList.innerHTML = "";
+      for (const layer of [...layers].reverse()) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "layer-button" + (layer.id === selectedLayerId ? " is-selected" : "");
+        button.textContent = layer.name;
+        button.addEventListener("click", () => {
+          selectedLayerId = layer.id;
+          syncControls();
+          renderLayers();
+          draw();
+        });
+        layersList.appendChild(button);
+      }
+    }
+
+    function refreshEditor() {
+      syncControls();
+      renderLayers();
+      draw();
+    }
+
+    function addLayer(name, image) {
+      const maxSide = Math.max(image.width, image.height);
+      const baseScale = Math.min(1, 180 / maxSide);
+      const layer = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+        name,
+        image,
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        scale: baseScale,
+        rotation: 0,
+        opacity: 1,
+        flipX: false
+      };
+      layers.push(layer);
+      selectedLayerId = layer.id;
+      refreshEditor();
+    }
+
+    function renderTemplates() {
+      templateGrid.innerHTML = "";
+      selectedTemplate = null;
+      addTemplateButton.disabled = true;
+      for (const template of templates) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "template-item";
+        item.innerHTML = `<img alt=""><span></span>`;
+        item.querySelector("img").src = template.url;
+        item.querySelector("img").alt = template.name;
+        item.querySelector("span").textContent = template.name;
+        item.addEventListener("click", () => {
+          selectedTemplate = template;
+          document.querySelectorAll(".template-item").forEach((node) => node.classList.remove("is-selected"));
+          item.classList.add("is-selected");
+          addTemplateButton.disabled = false;
+        });
+        templateGrid.appendChild(item);
+      }
+    }
+
+    async function loadTemplates() {
+      const category = categorySelect.value;
+      templateStatus.textContent = `template/${category} を読み込み中...`;
+      templateGrid.innerHTML = "";
+      addTemplateButton.disabled = true;
+      try {
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/template/${category}`;
+        const response = await fetch(apiUrl, { headers: { "Accept": "application/vnd.github+json" } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const entries = await response.json();
+        templates = entries
+          .filter((entry) => entry.type === "file" && IMAGE_EXTENSIONS.has(fileExtension(entry.name)))
+          .map((entry) => ({ name: entry.name, url: entry.download_url }));
+        templateStatus.textContent = templates.length
+          ? `${templates.length}件の画像を読み込みました。`
+          : `template/${category} に画像がありません。PNG/JPG/SVGなどを追加してください。`;
+        renderTemplates();
+      } catch (error) {
+        templates = [];
+        templateStatus.textContent = `template/${category} を読み込めませんでした。GitHub Pages公開後に再試行するか、PCから画像を追加してください。`;
+        renderTemplates();
+        console.error(error);
+      }
+    }
+
+    function canvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * canvas.width / rect.width,
+        y: (event.clientY - rect.top) * canvas.height / rect.height
+      };
+    }
+
+    function hitTest(point) {
+      for (let index = layers.length - 1; index >= 0; index -= 1) {
+        const layer = layers[index];
+        const dx = point.x - layer.x;
+        const dy = point.y - layer.y;
+        const angle = -layer.rotation * Math.PI / 180;
+        const localX = (dx * Math.cos(angle) - dy * Math.sin(angle)) / layer.scale;
+        const localY = (dx * Math.sin(angle) + dy * Math.cos(angle)) / layer.scale;
+        if (Math.abs(localX) <= layer.image.width / 2 && Math.abs(localY) <= layer.image.height / 2) {
+          return layer;
+        }
+      }
+      return null;
+    }
+
+    addTemplateButton.addEventListener("click", async () => {
+      if (!selectedTemplate) return;
+      addTemplateButton.disabled = true;
+      try {
+        addLayer(selectedTemplate.name, await imageFromUrl(selectedTemplate.url));
+      } catch (error) {
+        templateStatus.textContent = "選択した画像を追加できませんでした。";
+        console.error(error);
+      } finally {
+        addTemplateButton.disabled = false;
+      }
+    });
+
+    document.getElementById("uploadTemplateInput").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      addLayer(file.name, await imageFromFile(file));
+      event.target.value = "";
+    });
+
+    document.getElementById("backgroundInput").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      backgroundImage = await imageFromFile(file);
+      draw();
+      event.target.value = "";
+    });
+
+    document.getElementById("clearBackgroundButton").addEventListener("click", () => {
+      backgroundImage = null;
+      draw();
+    });
+
+    for (const [key, input] of Object.entries(controls)) {
+      input.addEventListener("input", () => {
+        const layer = selectedLayer();
+        if (!layer) return;
+        const value = Number(input.value);
+        if (!Number.isFinite(value)) return;
+        if (key === "scale") layer.scale = value / 100;
+        else if (key === "opacity") layer.opacity = value / 100;
+        else layer[key] = value;
+        draw();
+        renderLayers();
+      });
+    }
+
+    document.getElementById("flipButton").addEventListener("click", () => {
+      const layer = selectedLayer();
+      if (!layer) return;
+      layer.flipX = !layer.flipX;
+      draw();
+    });
+
+    document.getElementById("deleteButton").addEventListener("click", () => {
+      layers = layers.filter((layer) => layer.id !== selectedLayerId);
+      selectedLayerId = layers.length ? layers[layers.length - 1].id : null;
+      refreshEditor();
+    });
+
+    document.getElementById("moveBackButton").addEventListener("click", () => {
+      const index = layers.findIndex((layer) => layer.id === selectedLayerId);
+      if (index > 0) {
+        [layers[index - 1], layers[index]] = [layers[index], layers[index - 1]];
+        refreshEditor();
+      }
+    });
+
+    document.getElementById("moveFrontButton").addEventListener("click", () => {
+      const index = layers.findIndex((layer) => layer.id === selectedLayerId);
+      if (index >= 0 && index < layers.length - 1) {
+        [layers[index + 1], layers[index]] = [layers[index], layers[index + 1]];
+        refreshEditor();
+      }
+    });
+
+    document.getElementById("downloadButton").addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.download = "template-edit.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    canvas.addEventListener("pointerdown", (event) => {
+      const point = canvasPoint(event);
+      const layer = hitTest(point);
+      if (!layer) {
+        selectedLayerId = null;
+        refreshEditor();
+        return;
+      }
+      selectedLayerId = layer.id;
+      dragging = { pointerId: event.pointerId, offsetX: point.x - layer.x, offsetY: point.y - layer.y };
+      canvas.setPointerCapture(event.pointerId);
+      refreshEditor();
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!dragging || dragging.pointerId !== event.pointerId) return;
+      const layer = selectedLayer();
+      if (!layer) return;
+      const point = canvasPoint(event);
+      layer.x = point.x - dragging.offsetX;
+      layer.y = point.y - dragging.offsetY;
+      syncControls();
+      draw();
+    });
+
+    canvas.addEventListener("pointerup", () => dragging = null);
+    canvas.addEventListener("pointercancel", () => dragging = null);
+    categorySelect.addEventListener("change", loadTemplates);
+    document.getElementById("reloadTemplatesButton").addEventListener("click", loadTemplates);
+
+    refreshEditor();
+    loadTemplates();
+  </script>
+</body>
+</html>
