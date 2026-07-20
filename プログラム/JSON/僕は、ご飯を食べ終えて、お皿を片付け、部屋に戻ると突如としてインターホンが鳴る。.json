@@ -1,0 +1,26 @@
+{
+  "app": "Block Website Editor",
+  "version": 1,
+  "savedAt": "2026-07-20T12:41:44.744Z",
+  "workspaceXml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"page_root\" id=\"x1:Re)8h$~+$V-/Zd(Yw\" x=\"230\" y=\"70\"><field name=\"TITLE\">シーン1d</field><field name=\"FONT_SIZE\">16</field><field name=\"BG_COLOR\">#f8f9fa</field><field name=\"TEXT_COLOR\">#333333</field><statement name=\"CONTENT\"><block type=\"media_image\" id=\"JBt18c9zOm0w*/Zu%NAz\"><field name=\"SRC\">https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E5%86%99%E7%9C%9F/%E8%83%8C%E6%99%AF/%E5%83%95%E3%81%AF%E3%80%81%E3%81%94%E9%A3%AF%E3%82%92%E9%A3%9F%E3%81%B9%E7%B5%82%E3%81%88%E3%81%A6%E3%80%81%E3%81%8A%E7%9A%BF%E3%82%92%E7%89%87%E4%BB%98%E3%81%91%E3%80%81%E9%83%A8%E5%B1%8B%E3%81%AB%E6%88%BB%E3%82%8B%E3%81%A8%E7%AA%81%E5%A6%82%E3%81%A8%E3%81%97%E3%81%A6%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%9B%E3%83%B3%E3%81%8C%E9%B3%B4%E3%82%8B%E3%80%82.jpg</field><field name=\"ALT\">シーン1d</field><field name=\"WIDTH\">100%</field><field name=\"HEIGHT\">auto</field><field name=\"ALIGN\">left</field><field name=\"POSITION\">static</field><field name=\"OFFSET_X\">0px</field><field name=\"OFFSET_Y\">0px</field><field name=\"VISIBILITY\">visible</field><field name=\"Z_INDEX\">1</field><field name=\"HREF\"></field><field name=\"NEW_TAB\">FALSE</field><next><block type=\"media_image\" id=\"e5`pwmPNM0H9RFc,/:-2\"><field name=\"SRC\">https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E5%86%99%E7%9C%9F/%E3%83%9C%E3%82%BF%E3%83%B3/%E5%89%8D%E3%81%AB%E6%88%BB%E3%82%8B.jpg</field><field name=\"ALT\">画像の説明</field><field name=\"WIDTH\">15%</field><field name=\"HEIGHT\">auto</field><field name=\"ALIGN\">left</field><field name=\"POSITION\">absolute</field><field name=\"OFFSET_X\">400px</field><field name=\"OFFSET_Y\">5px</field><field name=\"VISIBILITY\">visible</field><field name=\"Z_INDEX\">1</field><field name=\"HREF\">https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0/HTML/s1c.html</field><field name=\"NEW_TAB\">FALSE</field><next><block type=\"media_image\" id=\"tTFPeYM2J?yL}jYA+@c!\"><field name=\"SRC\">https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E5%86%99%E7%9C%9F/%E3%83%9C%E3%82%BF%E3%83%B3/%E6%AC%A1%E3%81%AB%E9%80%B2%E3%82%80.jpg</field><field name=\"ALT\">画像の説明</field><field name=\"WIDTH\">15%</field><field name=\"HEIGHT\">auto</field><field name=\"ALIGN\">left</field><field name=\"POSITION\">absolute</field><field name=\"OFFSET_X\">500px</field><field name=\"OFFSET_Y\">5px</field><field name=\"VISIBILITY\">visible</field><field name=\"Z_INDEX\">1</field><field name=\"HREF\">https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0/HTML/s1e.html</field><field name=\"NEW_TAB\">FALSE</field><next><block type=\"media_audio\" id=\"-R#xcfA=$7ElWLMKb_[C\"><field name=\"SRC\">https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E9%9F%B3%E5%A3%B0/%E3%82%86%E3%81%A3%E3%81%8F%E3%82%8A%E3%83%9C%E3%82%A4%E3%82%B9%E3%83%A1%E3%83%BC%E3%82%AB%E3%83%BC/%E4%B8%BB%E4%BA%BA%E5%85%AC04.mp3</field><field name=\"CONTROLS\">FALSE</field><field name=\"AUTOPLAY\">TRUE</field><field name=\"LOOP\">FALSE</field><field name=\"HREF\"></field><field name=\"NEW_TAB\">FALSE</field><next><block type=\"media_audio\" id=\"rad~QzLvMBv]$jc={U5J\"><field name=\"SRC\">https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E9%9F%B3%E6%A5%BD/%E5%8A%B9%E6%9E%9C%E9%9F%B3/%E3%83%89%E3%82%A2%E3%83%81%E3%83%A3%E3%82%A4%E3%83%A02.mp3</field><field name=\"CONTROLS\">FALSE</field><field name=\"AUTOPLAY\">TRUE</field><field name=\"LOOP\">FALSE</field><field name=\"HREF\"></field><field name=\"NEW_TAB\">FALSE</field></block></next></block></next></block></next></block></next></block></statement></block></xml>",
+  "visibleImages": [
+    {
+      "src": "https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E5%86%99%E7%9C%9F/%E8%83%8C%E6%99%AF/%E5%83%95%E3%81%AF%E3%80%81%E3%81%94%E9%A3%AF%E3%82%92%E9%A3%9F%E3%81%B9%E7%B5%82%E3%81%88%E3%81%A6%E3%80%81%E3%81%8A%E7%9A%BF%E3%82%92%E7%89%87%E4%BB%98%E3%81%91%E3%80%81%E9%83%A8%E5%B1%8B%E3%81%AB%E6%88%BB%E3%82%8B%E3%81%A8%E7%AA%81%E5%A6%82%E3%81%A8%E3%81%97%E3%81%A6%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%9B%E3%83%B3%E3%81%8C%E9%B3%B4%E3%82%8B%E3%80%82.jpg",
+      "alt": "シーン1d",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E5%86%99%E7%9C%9F/%E3%83%9C%E3%82%BF%E3%83%B3/%E5%89%8D%E3%81%AB%E6%88%BB%E3%82%8B.jpg",
+      "alt": "画像の説明",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/%E5%86%99%E7%9C%9F/%E3%83%9C%E3%82%BF%E3%83%B3/%E6%AC%A1%E3%81%AB%E9%80%B2%E3%82%80.jpg",
+      "alt": "画像の説明",
+      "width": "",
+      "height": ""
+    }
+  ]
+}
