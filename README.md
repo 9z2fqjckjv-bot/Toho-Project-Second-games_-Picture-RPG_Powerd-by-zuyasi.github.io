@@ -15,9 +15,9 @@
 | `プログラム/JSON/` | 画面や進行に対応するデータJSON |
 | `写真/` | 背景・キャラクター・ボタンなどの画像素材 |
 | `音声/` | ゲームで利用する音声素材 |
-| `credit.html` | クレジットページ |
+| [credit.html](https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/credit.html) | クレジットページ |
 
 ## 補足
 
 - 画面遷移はHTML同士のリンクを中心に構成されています。
-- 素材クレジットは `credit.html` を参照してください。
+- 素材クレジットは [credit.html](https://9z2fqjckjv-bot.github.io/Toho-Project-Second-games_-Picture-RPG_Powerd-by-zuyasi.github.io/credit.html) を参照してください。
