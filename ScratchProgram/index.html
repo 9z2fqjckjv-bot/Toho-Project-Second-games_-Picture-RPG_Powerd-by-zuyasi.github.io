@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>幻想航空鉄道運転シュミレーター</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+      color: #e0e0e0;
+      padding: 1rem;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      text-align: center;
+      text-shadow: 0 0 12px rgba(100,180,255,0.6);
+      letter-spacing: 0.05em;
+    }
+
+    #stage-wrapper {
+      position: relative;
+      width: 480px;
+      height: 360px;
+      background: #000;
+      border: 2px solid #444;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #scratch-canvas {
+      display: block;
+      width: 480px;
+      height: 360px;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.8);
+      gap: 1rem;
+      transition: opacity 0.3s;
+    }
+
+    #overlay.hidden { opacity: 0; pointer-events: none; }
+
+    #status-text { font-size: 1.1rem; text-align: center; padding: 0 1rem; }
+
+    #progress-bar-container {
+      width: 300px;
+      height: 10px;
+      background: #333;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4c9be8, #74d7f7);
+      width: 0%;
+      transition: width 0.2s;
+      border-radius: 5px;
+    }
+
+    #controls {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .ctrl-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: bold;
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .ctrl-btn:active { transform: scale(0.96); }
+    .ctrl-btn:disabled { opacity: 0.4; cursor: default; }
+
+    #btn-flag { background: #3cb371; color: #fff; }
+    #btn-flag:hover:not(:disabled) { filter: brightness(1.15); }
+
+    #btn-stop { background: #e05050; color: #fff; }
+    #btn-stop:hover:not(:disabled) { filter: brightness(1.15); }
+
+    #fullscreen-hint {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: #888;
+    }
+
+    #asset-panel {
+      width: min(960px, 100%);
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .panel-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 0.9rem;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+    }
+
+    .panel-card h2 {
+      font-size: 1rem;
+      margin-bottom: 0.35rem;
+      color: #fff;
+    }
+
+    .panel-note {
+      margin-bottom: 0.75rem;
+      color: #b8c7d9;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
+    .action-grid,
+    .train-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.55rem;
+    }
+
+    .action-btn,
+    .train-btn {
+      min-height: 54px;
+      border: 1px solid rgba(116,215,247,0.35);
+      border-radius: 8px;
+      background: rgba(20,38,67,0.88);
+      color: #f4fbff;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.1s, filter 0.15s, border-color 0.15s;
+    }
+
+    .action-btn:hover:not(:disabled),
+    .train-btn:hover:not(:disabled) {
+      filter: brightness(1.15);
+      border-color: rgba(116,215,247,0.8);
+    }
+
+    .action-btn:active,
+    .train-btn:active { transform: scale(0.97); }
+
+    .action-btn:disabled,
+    .train-btn:disabled {
+      opacity: 0.42;
+      cursor: default;
+    }
+
+    .train-btn {
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.45rem;
+      text-align: left;
+      font-size: 0.82rem;
+    }
+
+    .train-btn img {
+      width: 46px;
+      height: 46px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: #000;
+    }
+
+    #operation-status {
+      margin-top: 0.7rem;
+      color: #a7f3d0;
+      font-size: 0.82rem;
+      min-height: 1.2em;
+    }
+
+    #question-panel[hidden] { display: none; }
+
+    #question-panel {
+      grid-column: 1 / -1;
+      border-color: rgba(255,214,102,0.65);
+      background: rgba(88,64,20,0.45);
+    }
+
+    #question-text {
+      margin-bottom: 0.65rem;
+      line-height: 1.5;
+    }
+
+    #answer-form {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    #answer-input {
+      flex: 1;
+      min-width: 0;
+      padding: 0.55rem 0.7rem;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 6px;
+      background: rgba(0,0,0,0.35);
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    #answer-submit {
+      border: none;
+      border-radius: 6px;
+      padding: 0.55rem 1rem;
+      background: #f0b429;
+      color: #1f2933;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    @media (max-width: 520px) {
+      #stage-wrapper { width: 100%; height: auto; aspect-ratio: 4/3; }
+      #scratch-canvas { width: 100%; height: auto; }
+      #asset-panel { grid-template-columns: 1fr; }
+      .action-grid,
+      .train-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .train-btn { grid-template-columns: 40px 1fr; }
+      .train-btn img { width: 40px; height: 40px; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>幻想航空鉄道運転シュミレーター</h1>
+
+  <div id="stage-wrapper">
+    <canvas id="scratch-canvas" width="480" height="360"></canvas>
+    <div id="overlay">
+      <div id="status-text">スクリプトを読み込んでいます…</div>
+      <div id="progress-bar-container"><div id="progress-bar"></div></div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <button class="ctrl-btn" id="btn-flag" disabled>▶ 開始（緑の旗）</button>
+    <button class="ctrl-btn" id="btn-stop"  disabled>■ 停止</button>
+  </div>
+  <div id="fullscreen-hint">ダブルクリックまたは F キーでフルスクリーン</div>
+
+  <div id="asset-panel" aria-label="Scratch 操作パネル">
+    <section class="panel-card">
+      <h2>ボタン操作</h2>
+      <p class="panel-note">scratch用/ボタン から抽出した操作です。Scratch 内の同名スプライトやブロードキャストを直接動かします。</p>
+      <div class="action-grid">
+        <button class="action-btn" data-sprite="次へ" disabled>次へ</button>
+        <button class="action-btn" data-sprite="読み上げ" disabled>読み上げ</button>
+        <button class="action-btn" data-sprite="列車確定" disabled>列車確定</button>
+        <button class="action-btn" data-sprite="駅リスト" disabled>駅リスト</button>
+        <button class="action-btn" data-sprite="路線" disabled>路線</button>
+        <button class="action-btn" data-sprite="列車" disabled>列車情報</button>
+        <button class="action-btn" data-broadcast="back" disabled>前の列車</button>
+        <button class="action-btn" data-broadcast="next" disabled>次の列車</button>
+      </div>
+      <div id="operation-status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel-card">
+      <h2>列車キャラクター</h2>
+      <p class="panel-note">scratch用/キャラクター/列車 から抽出した列車です。選ぶと Scratch の「列車アイコン」衣装と「列車」変数を合わせます。</p>
+      <div class="train-grid">
+        <button class="train-btn" data-costume="0" data-train-name="博麗車" disabled><img src="../scratch用/キャラクター/列車/博麗車.jpg" alt="">博麗車</button>
+        <button class="train-btn" data-costume="1" data-train-name="文々。車" disabled><img src="../scratch用/キャラクター/列車/文々。車.jpg" alt="">文々。車</button>
+        <button class="train-btn" data-costume="2" data-train-name="香霖堂車" disabled><img src="../scratch用/キャラクター/列車/香霖堂車.jpg" alt="">香霖堂車</button>
+        <button class="train-btn" data-costume="3" data-train-name="地底車" disabled><img src="../scratch用/キャラクター/列車/地底車.jpg" alt="">地底車</button>
+        <button class="train-btn" data-costume="4" data-train-name="守矢車" disabled><img src="../scratch用/キャラクター/列車/守谷車.jpg" alt="">守矢車</button>
+        <button class="train-btn" data-costume="5" data-train-name="カリチュマ車" disabled><img src="../scratch用/キャラクター/列車/カリチュマ車.jpg" alt="">カリチュマ車</button>
+        <button class="train-btn" data-costume="6" data-train-name="金ピカ車" disabled><img src="../scratch用/キャラクター/列車/金ピカ車.jpg" alt="">金ピカ車</button>
+      </div>
+    </section>
+
+    <section class="panel-card" id="question-panel" hidden>
+      <h2>Scratch からの質問</h2>
+      <div id="question-text"></div>
+      <form id="answer-form">
+        <input id="answer-input" autocomplete="off">
+        <button id="answer-submit" type="submit">回答</button>
+      </form>
+    </section>
+  </div>
+
+  <!--
+    Scratch ランタイム（jsDelivr CDN）
+    scratch-vm     → window.VirtualMachine
+    scratch-render → window.ScratchRender
+    scratch-storage → window.ScratchStorage
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/scratch-vm@5.0.300/dist/web/scratch-vm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/scratch-render@2.2.84/dist/web/scratch-render.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/scratch-storage@6.2.1/dist/web/scratch-storage.js"></script>
+  <!--
+    scratch-audio は CommonJS ビルド (module.exports = ...) のため、
+    ブラウザ環境ではダミーの module オブジェクトを事前に用意する。
+    読み込み完了後に window.AudioEngine へ代入して元の状態を復元する。
+  -->
+  <script>window.__scratchAudioMod = { exports: {} }; window.module = window.__scratchAudioMod;</script>
+  <script src="https://cdn.jsdelivr.net/npm/scratch-audio@2.0.268/dist.js"
+          onload="window.AudioEngine = window.__scratchAudioMod.exports; delete window.__scratchAudioMod; delete window.module;"
+          onerror="delete window.__scratchAudioMod; delete window.module; console.warn('scratch-audio の読み込みに失敗（音声なし）');"></script>
+
+  <script>
+  (async () => {
+    /* ── 要素 ── */
+    const canvas      = document.getElementById('scratch-canvas');
+    const overlay     = document.getElementById('overlay');
+    const statusText  = document.getElementById('status-text');
+    const progressBar = document.getElementById('progress-bar');
+    const btnFlag     = document.getElementById('btn-flag');
+    const btnStop     = document.getElementById('btn-stop');
+    const wrapper     = document.getElementById('stage-wrapper');
+    const actionButtons = [...document.querySelectorAll('.action-btn')];
+    const trainButtons = [...document.querySelectorAll('.train-btn')];
+    const operationStatus = document.getElementById('operation-status');
+    const questionPanel = document.getElementById('question-panel');
+    const questionText = document.getElementById('question-text');
+    const answerForm = document.getElementById('answer-form');
+    const answerInput = document.getElementById('answer-input');
+
+    const setStatus  = msg => { statusText.textContent = msg; };
+    const hideOverlay = () => { overlay.classList.add('hidden'); };
+    const setOperationStatus = msg => { operationStatus.textContent = msg; };
+    const setExternalControlsEnabled = enabled => {
+      actionButtons.forEach(button => { button.disabled = !enabled; });
+      trainButtons.forEach(button => { button.disabled = !enabled; });
+    };
+
+    /* ── VM 初期化 ── */
+    setStatus('仮想マシンを初期化中…');
+
+    let vm, renderer;
+    try {
+      vm = new window.VirtualMachine();
+
+      /* レンダラー */
+      renderer = new window.ScratchRender(canvas);
+      vm.attachRenderer(renderer);
+    } catch (err) {
+      setStatus('⚠ 仮想マシンの初期化に失敗しました: ' + err.message);
+      console.error(err);
+      return;
+    }
+
+    function showScratchQuestion(question) {
+      const text = typeof question === 'string'
+        ? question
+        : (question && (question.question || question.text || question.prompt)) || '入力してください。';
+      questionText.textContent = text;
+      questionPanel.hidden = false;
+      answerInput.value = '';
+      answerInput.focus();
+    }
+
+    function submitScratchAnswer(answer) {
+      questionPanel.hidden = true;
+      if (vm && vm.runtime && typeof vm.runtime.emit === 'function') {
+        vm.runtime.emit('ANSWER', answer);
+      }
+    }
+
+    if (vm.runtime && typeof vm.runtime.on === 'function') {
+      vm.runtime.on('QUESTION', showScratchQuestion);
+    }
+    if (typeof vm.on === 'function') {
+      vm.on('QUESTION', showScratchQuestion);
+    }
+
+    answerForm.addEventListener('submit', e => {
+      e.preventDefault();
+      submitScratchAnswer(answerInput.value);
+    });
+
+    /* ビットマップアダプター（JPEG/PNG コスチュームの読み込みに必要） */
+    vm.attachV2BitmapAdapter({
+      resize(image, w, h) {
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        if (!ctx) throw new Error('Failed to get 2D context for bitmap resize');
+        ctx.drawImage(image, 0, 0, w, h);
+        return c;
+      },
+      convertDataURIToBinary(uri) {
+        const marker = ';base64,';
+        const markerIdx = uri.indexOf(marker);
+        if (markerIdx === -1) throw new Error('Invalid data URI: missing base64 marker');
+        const b64 = uri.slice(markerIdx + marker.length);
+        const raw = atob(b64);
+        const arr = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        return arr;
+      }
+    });
+
+    /* オーディオ */
+    try {
+      const AE = window.AudioEngine;
+      if (typeof AE === 'function') {
+        vm.attachAudioEngine(new AE());
+      }
+    } catch (e) {
+      console.warn('オーディオエンジンの初期化に失敗:', e);
+    }
+
+    /* ストレージ（.sb3 内のアセットは zip に内包されているため必須ではないが付ける） */
+    try {
+      if (window.ScratchStorage) {
+        // scratch-storage@6.x は { ScratchStorage, AssetType, ... } というモジュールオブジェクトを
+        // エクスポートするため、クラス本体を取り出す
+        const StorageClass = typeof window.ScratchStorage === 'function'
+          ? window.ScratchStorage
+          : window.ScratchStorage.ScratchStorage;
+        const storage = new StorageClass();
+        const { AssetType } = storage;
+        storage.addWebStore(
+          [AssetType.ImageVector, AssetType.ImageBitmap, AssetType.Sound],
+          asset =>
+            `https://cdn.assets.scratch.mit.edu/internalapi/asset/${asset.assetId}.${asset.dataFormat}/get/`
+        );
+        vm.attachStorage(storage);
+      }
+    } catch (e) {
+      console.warn('ストレージの初期化に失敗:', e);
+    }
+
+    /* ── プロジェクトファイル取得 ── */
+    setStatus('プロジェクトファイルをダウンロード中…');
+
+    let projectData;
+    try {
+      const resp = await fetch('./幻想航空鉄道運転シュミレーター.sb3');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+
+      const total = parseInt(resp.headers.get('Content-Length') || '0', 10);
+      const reader = resp.body.getReader();
+      const chunks = [];
+      let received = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        if (total > 0) {
+          progressBar.style.width = Math.round((received / total) * 100) + '%';
+        }
+      }
+
+      progressBar.style.width = '100%';
+
+      // Uint8Array チャンクを単一の ArrayBuffer に結合
+      const merged = new Uint8Array(received);
+      let offset = 0;
+      for (const chunk of chunks) {
+        merged.set(chunk, offset);
+        offset += chunk.length;
+      }
+      projectData = merged.buffer;
+    } catch (err) {
+      setStatus('⚠ ファイルの読み込みに失敗しました: ' + err.message);
+      console.error(err);
+      return;
+    }
+
+    /* ── プロジェクトロード ── */
+    setStatus('プロジェクトを解析中…');
+    try {
+      await vm.loadProject(projectData);
+    } catch (err) {
+      setStatus('⚠ プロジェクトの読み込みに失敗しました: ' + err.message);
+      console.error(err);
+      return;
+    }
+
+    /* ── 起動 ── */
+    vm.start();
+    vm.greenFlag();
+    hideOverlay();
+
+    btnFlag.disabled = false;
+    btnStop.disabled = false;
+    setExternalControlsEnabled(true);
+
+    btnFlag.addEventListener('click', () => vm.greenFlag());
+    btnStop.addEventListener('click', () => vm.stopAll());
+
+    function findTargetByName(name) {
+      return vm.runtime.targets.find(target => {
+        if (target.isStage) return false;
+        const targetName = target.getName ? target.getName() : target.sprite && target.sprite.name;
+        return targetName === name;
+      });
+    }
+
+    function findStage() {
+      return vm.runtime.targets.find(target => target.isStage);
+    }
+
+    function setStageVariable(name, value) {
+      const stage = findStage();
+      if (!stage) return false;
+
+      const variable = typeof stage.lookupVariableByNameAndType === 'function'
+        ? stage.lookupVariableByNameAndType(name, '')
+        : Object.values(stage.variables || {}).find(item => item.name === name);
+
+      if (!variable) return false;
+      variable.value = value;
+      if (vm.runtime && typeof vm.runtime.requestRedraw === 'function') {
+        vm.runtime.requestRedraw();
+      }
+      return true;
+    }
+
+    function runSpriteClick(name) {
+      const target = findTargetByName(name);
+      if (!target) {
+        setOperationStatus(`${name} スプライトが見つかりません。`);
+        return;
+      }
+
+      if (vm.runtime && typeof vm.runtime.startHats === 'function') {
+        vm.runtime.startHats('event_whenthisspriteclicked', null, target);
+        setOperationStatus(`${name} を操作しました。`);
+        return;
+      }
+
+      const x = Number(target.x) || 0;
+      const y = Number(target.y) || 0;
+      vm.postIOData('mouse', { x, y, isDown: true, button: 0 });
+      window.setTimeout(() => {
+        vm.postIOData('mouse', { x, y, isDown: false, button: 0 });
+      }, 60);
+      setOperationStatus(`${name} の位置をクリックしました。`);
+    }
+
+    function runBroadcast(name) {
+      if (vm.runtime && typeof vm.runtime.startHats === 'function') {
+        vm.runtime.startHats('event_whenbroadcastreceived', { BROADCAST_OPTION: name });
+        setOperationStatus(`${name === 'next' ? '次' : '前'}の列車へ切り替えました。`);
+      }
+    }
+
+    actionButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const spriteName = button.dataset.sprite;
+        const broadcastName = button.dataset.broadcast;
+        if (spriteName) runSpriteClick(spriteName);
+        if (broadcastName) runBroadcast(broadcastName);
+      });
+    });
+
+    trainButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const target = findTargetByName('列車アイコン');
+        const costumeIndex = Number(button.dataset.costume);
+        const trainName = button.dataset.trainName || button.textContent.trim();
+
+        if (!target || !Number.isInteger(costumeIndex)) {
+          setOperationStatus('列車アイコンを操作できませんでした。');
+          return;
+        }
+
+        if (typeof target.setCostume === 'function') {
+          target.setCostume(costumeIndex);
+        }
+        setStageVariable('列車', String(costumeIndex + 1));
+        setOperationStatus(`${trainName} を選択しました。`);
+      });
+    });
+
+    /* ── フルスクリーン ── */
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        wrapper.requestFullscreen().catch(e => console.warn(e));
+      } else {
+        document.exitFullscreen();
+      }
+    }
+    wrapper.addEventListener('dblclick', toggleFullscreen);
+    document.addEventListener('keydown', e => {
+      if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) toggleFullscreen();
+    });
+
+    /* ── キーボード入力（Scratch VM へ転送） ── */
+    document.addEventListener('keydown', e => {
+      vm.postIOData('keyboard', { key: e.key, keyCode: e.keyCode, isDown: true });
+    });
+    document.addEventListener('keyup', e => {
+      vm.postIOData('keyboard', { key: e.key, keyCode: e.keyCode, isDown: false });
+    });
+
+    /* ── マウス / タッチ入力 ── */
+    function stageCoords(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (clientX - rect.left) * (480 / rect.width) - 240,
+        y: 180 - (clientY - rect.top) * (360 / rect.height),
+      };
+    }
+
+    canvas.style.touchAction = 'none';
+
+    canvas.addEventListener('mousemove', e => {
+      const { x, y } = stageCoords(e.clientX, e.clientY);
+      vm.postIOData('mouse', { x, y });
+    });
+    canvas.addEventListener('mousedown', e => {
+      const { x, y } = stageCoords(e.clientX, e.clientY);
+      vm.postIOData('mouse', { x, y, isDown: true, button: e.button });
+    });
+    canvas.addEventListener('mouseup', e => {
+      const { x, y } = stageCoords(e.clientX, e.clientY);
+      vm.postIOData('mouse', { x, y, isDown: false, button: e.button });
+    });
+    canvas.addEventListener('mouseleave', () => {
+      vm.postIOData('mouse', { isDown: false, button: 0 });
+    });
+
+    canvas.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      if (!t) return;
+      const { x, y } = stageCoords(t.clientX, t.clientY);
+      vm.postIOData('mouse', { x, y, isDown: true, button: 0 });
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      if (!t) return;
+      const { x, y } = stageCoords(t.clientX, t.clientY);
+      vm.postIOData('mouse', { x, y, isDown: true, button: 0 });
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchend', e => {
+      const t = e.changedTouches[0];
+      if (t) {
+        const { x, y } = stageCoords(t.clientX, t.clientY);
+        vm.postIOData('mouse', { x, y, isDown: false, button: 0 });
+      } else {
+        vm.postIOData('mouse', { isDown: false, button: 0 });
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+  })().catch(err => {
+    document.getElementById('status-text').textContent = '⚠ 予期しないエラーが発生しました: ' + err.message;
+    console.error(err);
+  });
+  </script>
+</body>
+</html>
