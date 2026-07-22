@@ -169,11 +169,35 @@
     /* ── VM 初期化 ── */
     setStatus('仮想マシンを初期化中…');
 
-    const vm = new window.VirtualMachine();
+    let vm, renderer;
+    try {
+      vm = new window.VirtualMachine();
 
-    /* レンダラー */
-    const renderer = new window.ScratchRender(canvas);
-    vm.attachRenderer(renderer);
+      /* レンダラー */
+      renderer = new window.ScratchRender(canvas);
+      vm.attachRenderer(renderer);
+    } catch (err) {
+      setStatus('⚠ 仮想マシンの初期化に失敗しました: ' + err.message);
+      console.error(err);
+      return;
+    }
+
+    /* ビットマップアダプター（JPEG/PNG コスチュームの読み込みに必要） */
+    vm.attachV2BitmapAdapter({
+      resize(image, w, h) {
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(image, 0, 0, w, h);
+        return c;
+      },
+      convertDataURIToBinary(uri) {
+        const b64 = uri.split(',')[1];
+        const raw = atob(b64);
+        const arr = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        return arr;
+      }
+    });
 
     /* オーディオ */
     try {
@@ -188,7 +212,12 @@
     /* ストレージ（.sb3 内のアセットは zip に内包されているため必須ではないが付ける） */
     try {
       if (window.ScratchStorage) {
-        const storage = new window.ScratchStorage();
+        // scratch-storage@6.x は { ScratchStorage, AssetType, ... } というモジュールオブジェクトを
+        // エクスポートするため、クラス本体を取り出す
+        const StorageClass = typeof window.ScratchStorage === 'function'
+          ? window.ScratchStorage
+          : window.ScratchStorage.ScratchStorage;
+        const storage = new StorageClass();
         const { AssetType } = storage;
         storage.addWebStore(
           [AssetType.ImageVector, AssetType.ImageBitmap, AssetType.Sound],
@@ -316,7 +345,10 @@
       vm.postIOData('mouse', { isDown: false });
     }, { passive: true });
 
-  })();
+  })().catch(err => {
+    document.getElementById('status-text').textContent = '⚠ 予期しないエラーが発生しました: ' + err.message;
+    console.error(err);
+  });
   </script>
 </body>
 </html>
