@@ -187,11 +187,16 @@
       resize(image, w, h) {
         const c = document.createElement('canvas');
         c.width = w; c.height = h;
-        c.getContext('2d').drawImage(image, 0, 0, w, h);
+        const ctx = c.getContext('2d');
+        if (!ctx) throw new Error('Failed to get 2D context for bitmap resize');
+        ctx.drawImage(image, 0, 0, w, h);
         return c;
       },
       convertDataURIToBinary(uri) {
-        const b64 = uri.split(',')[1];
+        const marker = ';base64,';
+        const markerIdx = uri.indexOf(marker);
+        if (markerIdx === -1) throw new Error('Invalid data URI: missing base64 marker');
+        const b64 = uri.slice(markerIdx + marker.length);
         const raw = atob(b64);
         const arr = new Uint8Array(raw.length);
         for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
