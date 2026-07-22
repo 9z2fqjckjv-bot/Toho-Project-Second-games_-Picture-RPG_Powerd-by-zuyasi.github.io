@@ -325,30 +325,48 @@
       };
     }
 
+    canvas.style.touchAction = 'none';
+
     canvas.addEventListener('mousemove', e => {
       const { x, y } = stageCoords(e.clientX, e.clientY);
       vm.postIOData('mouse', { x, y });
     });
     canvas.addEventListener('mousedown', e => {
       const { x, y } = stageCoords(e.clientX, e.clientY);
-      vm.postIOData('mouse', { x, y, isDown: true });
+      vm.postIOData('mouse', { x, y, isDown: true, button: e.button });
     });
-    canvas.addEventListener('mouseup', () => {
-      vm.postIOData('mouse', { isDown: false });
+    canvas.addEventListener('mouseup', e => {
+      const { x, y } = stageCoords(e.clientX, e.clientY);
+      vm.postIOData('mouse', { x, y, isDown: false, button: e.button });
     });
+    canvas.addEventListener('mouseleave', () => {
+      vm.postIOData('mouse', { isDown: false, button: 0 });
+    });
+
     canvas.addEventListener('touchstart', e => {
       const t = e.touches[0];
+      if (!t) return;
       const { x, y } = stageCoords(t.clientX, t.clientY);
-      vm.postIOData('mouse', { x, y, isDown: true });
-    }, { passive: true });
+      vm.postIOData('mouse', { x, y, isDown: true, button: 0 });
+      e.preventDefault();
+    }, { passive: false });
     canvas.addEventListener('touchmove', e => {
       const t = e.touches[0];
+      if (!t) return;
       const { x, y } = stageCoords(t.clientX, t.clientY);
-      vm.postIOData('mouse', { x, y });
-    }, { passive: true });
-    canvas.addEventListener('touchend', () => {
-      vm.postIOData('mouse', { isDown: false });
-    }, { passive: true });
+      vm.postIOData('mouse', { x, y, isDown: true, button: 0 });
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchend', e => {
+      const t = e.changedTouches[0];
+      if (t) {
+        const { x, y } = stageCoords(t.clientX, t.clientY);
+        vm.postIOData('mouse', { x, y, isDown: false, button: 0 });
+      } else {
+        vm.postIOData('mouse', { isDown: false, button: 0 });
+      }
+      e.preventDefault();
+    }, { passive: false });
 
   })().catch(err => {
     document.getElementById('status-text').textContent = '⚠ 予期しないエラーが発生しました: ' + err.message;
